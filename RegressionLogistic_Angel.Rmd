@@ -1,0 +1,80 @@
+---
+title: "LogisticRegression"
+author: "Ángel Fernandez Temiño"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(yarrr)
+library(dplyr)
+head(auction)
+```
+
+## Regression object price.all.lm 
+
+En este apartado vamos a predecir el valor real de venta de los barcos basándose en los cañones, las habitaciones, la edad, la condición, el color y el estilo. 
+
+```{r price.all.lm}
+price.all.lm <- lm(price ~ cannons + rooms + age + condition + color + style,
+                    data = auction)
+
+summary(price.all.lm)
+```
+Todas las estimaciones de regresión son básicamente las mismas, excepto por el color. Mientras que el precio JBB ignoraba el color, los precios de venta reales de los barcos eran muy diferentes para los diferentes colores de los barcos.
+
+## Regression object  price.all.blr
+
+Para elaborar este modelo usamos la variable binaria price.gt.3500 indicando si el barco tenía o no un precio de venta superior a 3500
+
+```{r price.all.blr}
+auction$price.gt.3500 <- auction$price > 3500
+
+price.all.blr <- glm(price.gt.3500 ~ cannons + rooms + age + condition + color + style,
+                      data = auction,
+                      family = binomial)
+
+summary(price.all.blr)
+```
+
+## Predict the selling price
+
+cannons	rooms	age	condition	color	style
+  12	   34	   43	     7	  black	classic
+   8	   26	   54	     3	  black	modern
+  32	   65	  100	     5	   red	modern
+
+```{r predictlm}
+# Creamos el data frame con los datos dados
+barcosPred <- data.frame(cannons = c(12, 8, 32),
+                        rooms = c(34, 26, 65),
+                        age = c(43, 54, 100),
+                        condition = c(7, 3, 5),
+                        color = c("black", "black", "red"),
+                        style = c("classic", "modern", "modern"),
+                        stringsAsFactors = F
+                        )
+# Predicción
+predict(object = price.all.lm, newdata = barcosPred)
+```
+
+Según nuestro modelo se prevé que se vendan a 3944, 2331 y 6296, respectivamente.
+
+
+## Predecir con price.all.blr predecir la probabilidad de que los tres nuevos buques tengan un precio de venta superior a 3.500.
+
+```{r predictblr}
+predBlr <- predict(object = price.all.blr,
+                    newdata = barcosPred)
+
+# Convertir los resultados a probabilidad
+1 / (1 + exp(-predBlr))
+```
+
+De acuerdo con el modelo de regresión logística, la probabilidad de que los barcos se vendan por más de 3500 es de 89.04%, 0.05% y 99.99% respectivamente.
+
+
+
+
+
+
+

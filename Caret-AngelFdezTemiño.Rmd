@@ -1,0 +1,403 @@
+---
+title: "CaretAngelFdez"
+author: "Ángel Fernandez Temiño"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+AlzheimerData <- read.csv("C:/Users/angel/Desktop/Master UMA/DataScience/practicas/paquete Caret  - Machine Learning/AlzheimerData.csv")
+library(dplyr) 
+library(caret)
+modelLookup()
+```
+
+# Alzheimer
+
+En este dataset podemos encontrar la siguiente información:
+* **Sex:** Sexo
+* **Class:** Enfermo o no.
+* **Resto:** Son varíables numéricas donde podememos ver su estadística mas abajo.
+
+```{r AlzheimerData1}
+AlzheimerData %>% select_if(~!is.numeric(.))->AlzheimerDataNonNum
+summary(AlzheimerDataNonNum)
+```
+
+Como podemos ver nuestro dataset encuentra un mayor numero de personas sanas y de mujeres.
+
+```{r AlzheimerData2, include=FALSE}
+AlzheimerData %>% select_if(is.numeric)->AlzheimerDataNum
+summary(AlzheimerDataNum)
+```
+## División de conjuntos
+
+El primer paso siempre consistirá en dividir el conjunto completo de datos en un subconjunto de entrenamiento (0.8) y otro para test(0.2).
+
+```{r conjuntos}
+trainIndex <- createDataPartition(AlzheimerData$GM_VOLUME, 
+                                  p = .8, 
+                                  list = FALSE, 
+                                  times = 1)
+
+alzheimer_train <- AlzheimerData[trainIndex, ]
+alzheimer_test  <- AlzheimerData[-trainIndex, ] 
+```
+
+## Modelos para BRAIN_VOLUME ~ AGE + SEX,
+Para cada uno de los modelos primero tenemos que entrenarlos, entrenar significa actualizar (siguiendo unas reglas concretas) los parámetros internos del modelo para que el error cometido sea el menor posible, dados los datos de entrada.
+
+### Realización y comparación entre modelos
+
+En este apartados realizaremos la comparacion entre los siguientes métodos *Linear Regression*, *Gradient boosting machine* y *K-nearest Neighbors*.
+
+train(BRAIN_VOLUME ~ AGE + SEX, 
+          data = alzheimer_train,
+          method = x,
+          trControl = fitControl,
+          verbose = FALSE)
+
+```{r metodos, warning=FALSE}
+# Esto hace que entrenemos con validación cruzada
+fitControl <- trainControl(method = "repeatedcv",
+                           number = 10,
+                           repeats = 1)
+
+# Métodos que queremos ejecutar
+methods <- c("knn", "gbm", "lm")
+
+# Los ejecutamos usando lapply
+methods %>% 
+  lapply(function(x) {
+    
+    train(BRAIN_VOLUME ~ AGE + SEX, 
+          data = alzheimer_train,
+          method = x,
+          trControl = fitControl,
+          verbose = FALSE)
+    
+  }) -> caret_results
+
+# A cada elemento del resultado le ponemos nombre
+names(caret_results) <- methods
+caret_results
+```
+
+Ahora seleccionamos el mejor de los metodos:
+
+```{r metodos2}
+# Recorremos todos los métodos y tomamos el RMSE de cada uno
+best_rmse <- sapply(caret_results, function(i) min(i$results$RMSE, na.rm = TRUE))
+
+# El mejor será el que tenga un RMSE más bajo
+best_regressor <- names(best_rmse)[which.min(best_rmse)]
+
+# Los mostramos en forma de tabla
+w <- best_rmse %>% as.data.frame()
+
+colnames(w) <- "RMSE"
+
+w %>% 
+  knitr::kable(format = "html") %>% 
+  kableExtra::kable_styling(font_size = 14)
+```
+
+Con esto, somos capaces de seleccionar el mejor de los métodos (el que minimice el error cometido), con lo cual nuestro mejor modelo será *K-nearest Neighbors*.
+
+## Modelos para GM_VOLUME ~ AGE + SEX,
+### Realización y comparación entre modelos
+
+En este apartados realizaremos la comparacion entre los siguientes métodos *Linear Regression*, *Gradient boosting machine* y *K-nearest Neighbors*.
+
+```{r metodosGM, warning=FALSE}
+methods %>% 
+  lapply(function(x) {
+    
+    train(GM_VOLUME ~ AGE + SEX, 
+          data = alzheimer_train,
+          method = x,
+          trControl = fitControl,
+          verbose = FALSE)
+    
+  }) -> caret_results
+
+names(caret_results) <- methods
+```
+
+Ahora seleccionamos el mejor de los metodos:
+
+```{r metodosGM2}
+# Recorremos todos los métodos y tomamos el RMSE de cada uno
+best_rmse <- sapply(caret_results, function(i) min(i$results$RMSE, na.rm = TRUE))
+
+# El mejor será el que tenga un RMSE más bajo
+best_regressor <- names(best_rmse)[which.min(best_rmse)]
+
+# Los mostramos en forma de tabla
+w <- best_rmse %>% as.data.frame()
+
+colnames(w) <- "RMSE"
+
+w %>% 
+  knitr::kable(format = "html") %>% 
+  kableExtra::kable_styling(font_size = 14)
+```
+
+Con esto, somos capaces de seleccionar el mejor de los métodos, *K-nearest Neighbors*.
+
+## Modelos para WM_VOLUME  ~ AGE + SEX,
+
+### Realización y comparación entre modelos
+
+En este apartados realizaremos la comparacion entre los siguientes métodos *Linear Regression*, *Gradient boosting machine* y *K-nearest Neighbors*.
+
+```{r metodosWM, warning=FALSE}
+methods %>% 
+  lapply(function(x) {
+    
+    train(WM_VOLUME ~ AGE + SEX, 
+          data = alzheimer_train,
+          method = x,
+          trControl = fitControl,
+          verbose = FALSE)
+    
+  }) -> caret_results
+
+names(caret_results) <- methods
+```
+
+Ahora seleccionamos el mejor de los metodos:
+
+```{r metodosWM2}
+# Recorremos todos los métodos y tomamos el RMSE de cada uno
+best_rmse <- sapply(caret_results, function(i) min(i$results$RMSE, na.rm = TRUE))
+
+# El mejor será el que tenga un RMSE más bajo
+best_regressor <- names(best_rmse)[which.min(best_rmse)]
+
+# Los mostramos en forma de tabla
+w <- best_rmse %>% as.data.frame()
+
+colnames(w) <- "RMSE"
+
+w %>% 
+  knitr::kable(format = "html") %>% 
+  kableExtra::kable_styling(font_size = 14)
+```
+
+Nuestro mejor método vuelve a ser *K-nearest Neighbors*.
+
+
+## Modelos para AGE ~ BRAIN_VOLUME + GM_VOLUME + WM_VOLUME
+
+### Realización y comparación entre modelos
+
+En este apartados realizaremos la comparacion entre los siguientes métodos *Linear Regression*, *Gradient boosting machine* y *K-nearest Neighbors*.
+
+```{r metodosAge, warning=FALSE}
+methods %>% 
+  lapply(function(x) {
+    
+    train(AGE ~ BRAIN_VOLUME + GM_VOLUME + WM_VOLUME, 
+          data = alzheimer_train,
+          method = x,
+          trControl = fitControl,
+          verbose = FALSE)
+    
+  }) -> caret_results
+
+
+names(caret_results) <- methods
+caret_results
+```
+
+Ahora seleccionamos el mejor de los metodos:
+
+```{r metodosAge2}
+# Recorremos todos los métodos y tomamos el RMSE de cada uno
+best_rmse <- sapply(caret_results, function(i) min(i$results$RMSE, na.rm = TRUE))
+
+# El mejor será el que tenga un RMSE más bajo
+best_regressor <- names(best_rmse)[which.min(best_rmse)]
+
+# Los mostramos en forma de tabla
+w <- best_rmse %>% as.data.frame()
+
+colnames(w) <- "RMSE"
+
+w %>% 
+  knitr::kable(format = "html") %>% 
+  kableExtra::kable_styling(font_size = 14)
+
+```
+
+Nuestro mejor método en este caso va a ser *Linear Model* y podemos destacar que el error cometido claramente inferior a los demas modelos, por lo tanto podemos decir que los parámetros volumétricos del cerebro son buenos indicadores de la edad.
+
+## Volumen cerebral respecto a la salud
+
+Queremos comprobar si el volumen cerebral es significativamente menor en sujetos con Alzheimer que en sujetos sanos. Para eso analizaremos por partes primero hombres y luego mujeres.
+
+```{r salud-volumencerebral}
+data_female <- subset(alzheimer_train, alzheimer_train$SEX == "FEMALE")
+data_male <- subset(alzheimer_train, alzheimer_train$SEX == "MALE")
+t.test(BRAIN_VOLUME ~ CLASS,
+       data = data_male)
+t.test(BRAIN_VOLUME ~ CLASS,
+       data = data_female)
+```
+
+Como podemos ver el volumen cerebral es levemente menor en los pacientes con Alzheimer, aunque estos pueden presentar valores más extremos por arriba respecto a este valor. Además en las mujeres podemos encontrar unos valores de media inferior al de los hombres. 
+
+## Volumen de sustancia gris con respecto a la salud
+```{r salud-volumensusGris}
+data_female <- subset(alzheimer_train, alzheimer_train$SEX == "FEMALE")
+data_male <- subset(alzheimer_train, alzheimer_train$SEX == "MALE")
+t.test(GM_VOLUME  ~ CLASS,
+       data = data_male)
+t.test(GM_VOLUME  ~ CLASS,
+       data = data_female)
+```
+
+Podemos observar que un paciente sano presenta mayor volumen de sustancia gris en el cerebro, frente a uno no sano.
+
+
+## Volumen de sustancia blanca con respecto a la salud
+```{r salud-volumensusBlanca}
+data_female <- subset(alzheimer_train, alzheimer_train$SEX == "FEMALE")
+data_male <- subset(alzheimer_train, alzheimer_train$SEX == "MALE")
+t.test(WM_VOLUME  ~ CLASS,
+       data = data_male)
+t.test(WM_VOLUME  ~ CLASS,
+       data = data_female)
+```
+En menor medida que lo anterior pero seguimos encontrando mayor sustancia en los pacientes hombres sanos. A diferencia no es así para la mujer, donde nos encontramos una leve diferencia entre los conjuntos teniendo mayor sustancia blanca como media las mujeres con Alzheimer.
+
+Estos análisis ayudan a establecer marcadores o indicadores del estado de un individuo.
+
+## Modelo computacional clasificador
+
+Vamos a crear un modelo computacional que utilizando todos los parámetros disponibles, estime la clase a la que pertenece cada individuo.
+
+1. Dividir en conjunto de entrenamiento (80%) y test (20%).
+
+```{r conjuntosMod}
+trainIndex <- createDataPartition(AlzheimerData$GM_VOLUME, 
+                                  p = .8, 
+                                  list = FALSE, 
+                                  times = 1)
+
+alzheimer_train <- AlzheimerData[trainIndex, ]
+alzheimer_test  <- AlzheimerData[-trainIndex, ] 
+```
+
+2. Usar validación cruzada en 5 estratos.
+3. Al menos, entrenar modelos rpart, C5.0 y svmLinear, aparte de otros 3 de libre elección. (Ayuda: Usar el código en la sección Entrenamiento del apartado Uso en clasificación, y la fórmula CLASS ~ .)
+
+```{r metodosMod, warning=FALSE}
+# Validación cruzada
+fitControl <- trainControl(method = "repeatedcv",
+                           number = 5,
+                           repeats = 1)
+
+# Métodos que queremos ejecutar
+methodsMod <- c("rf", "rpart", "C5.0", "svmLinear", "lvq", "gbm")
+
+# Los ejecutamos usando lapply
+methodsMod %>% 
+  lapply(function(x) {
+    
+    train(CLASS ~ ., 
+          data = alzheimer_train,
+          method = x,
+          trControl = fitControl)
+    
+  }) -> caret_results
+
+# A cada elemento del resultado le ponemos nombre
+names(caret_results) <- methodsMod
+caret_results
+```
+
+
+4.Para cada modelo entrenado, calcular la matriz de confusión sobre los datos no usados en el entrenamiento. (Ayuda: Usar el código de la sección Predicción usando el modelo entrenado del apartado Uso en clasificación)
+5.Determinar, en términos de la métrica correspondiente, cuál de los métodos es el mejor. (Ayuda: Usar el código de la sección Resultados del apartado Uso en clasificación)
+6.Crear gráficas para comparar las configuraciones de hiperparámetros de los modelos entrenados. (Ayuda: Usar plot())
+
+```{r mejorModelo, warning=FALSE}
+# Recorremos todos los resultados, almacenando la métrica
+# accuracy (la precisión)
+best_acc <- sapply(caret_results, function(i) max(i$results$Accuracy, na.rm = TRUE))
+
+best_classifier <- names(best_acc)[which.max(best_acc)]
+
+w <- best_acc %>% as.data.frame()
+
+colnames(w) <- "Accuracy"
+
+w %>% 
+  knitr::kable(format = "html") %>% 
+  kableExtra::kable_styling(font_size = 14)
+
+```
+
+Siendo nuestro mejor método  gbm-->0.779682, seguido de C5.0-->0.7776418 y rf-->0.7713918.
+
+**GBM**
+```{r prediccion}
+# Predecimos sobre los sujetos
+predicted_class <- caret_results[[best_classifier]] %>%  
+  predict(newdata = alzheimer_test)
+# Valores estimados como primer argumento, valores reales como segundo
+confusionMatrix(predicted_class, alzheimer_test$CLASS)
+
+plot(caret_results[[best_classifier]])
+```
+Analizando los resultados podemos ver que de los 51 pacientes enfermos en el conjunto de pruebas, 35 han sido bien clasificados y 16 no. AL mismo tiempo, de los 68 individuos sanos presentes, 12 han sido mal clasificados frente a 56 que lo han sido correctamente.
+**Random Forest**
+```{r prediccion2}
+predicted_classRF <- caret_results$rf %>%  
+  predict(alzheimer_test)
+confusionMatrix(predicted_classRF, alzheimer_test$CLASS)
+plot(caret_results$rf)
+```
+Analizando los resultados podemos ver que de los 53 pacientes enfermos en el conjunto de pruebas, 37 han sido bien clasificados y 16 no. AL mismo tiempo, de los 66 individuos sanos presentes, 10 han sido mal clasificados frente a 56 que lo han sido correctamente.
+
+**Recursive Partitioning And Regression Trees**
+```{r prediccion3}
+predicted_classrpart <- caret_results$rpart %>%  
+  predict(alzheimer_test)
+confusionMatrix(predicted_classrpart, alzheimer_test$CLASS)
+plot(caret_results$rpart)
+```
+Analizando los resultados podemos ver que de los 51 pacientes enfermos en el conjunto de pruebas, 35 han sido bien clasificados y 16 no. AL mismo tiempo, de los 68 individuos sanos presentes, 12 han sido mal clasificados frente a 56 que lo han sido correctamente.
+**svmLinear**
+```{r prediccion4}
+predicted_classc5 <- caret_results$svmLinear %>%  
+  predict(alzheimer_test)
+confusionMatrix(predicted_classc5, alzheimer_test$CLASS)
+```
+Analizando los resultados podemos ver que de los 61 pacientes enfermos en el conjunto de pruebas, 39 han sido bien clasificados y 22 no. AL mismo tiempo, de los 58 individuos sanos presentes, 8 han sido mal clasificados frente a 50 que lo han sido correctamente.
+
+**Learning vector quantization**
+```{r prediccion5}
+predicted_classlvq <- caret_results$lvq %>%  
+  predict(alzheimer_test)
+confusionMatrix(predicted_classlvq, alzheimer_test$CLASS)
+plot(caret_results$lvq)
+```
+Analizando los resultados podemos ver que de los 60 pacientes enfermos en el conjunto de pruebas, 36 han sido bien clasificados y 24 no. AL mismo tiempo, de los 59 individuos sanos presentes, 11 han sido mal clasificados frente a 48 que lo han sido correctamente.
+
+**C5.0**
+```{r prediccion6}
+methodsMod <- c("rf", "rpart", "C5.0", "svmLinear", "lvq", "gbm")
+predicted_classc <- caret_results$C5.0 %>%  
+  predict(alzheimer_test)
+confusionMatrix(predicted_classc, alzheimer_test$CLASS)
+plot(caret_results$C5.0)
+```
+
+Analizando los resultados podemos ver que de los 53 pacientes enfermos en el conjunto de pruebas, 37 han sido bien clasificados y 16 no. AL mismo tiempo, de los 66 individuos sanos presentes, 10 han sido mal clasificados frente a 56 que lo han sido correctamente.
+
+
+
+
+

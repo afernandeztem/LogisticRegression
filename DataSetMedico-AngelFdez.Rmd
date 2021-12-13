@@ -1,0 +1,248 @@
+---
+title: "Proyecto Dataset Médico - Regresión"
+author: "Ángel Fernandez Temiño"
+dataset: "insurance.csv"
+output: html_document
+---
+
+```{r setup}
+insurance <- read.csv("C:/Users/angel/Desktop/Master UMA/DataScience/Datasets/insurance.csv")
+require("corrplot")
+age <- insurance[,1]
+sex <- insurance[,2]
+bmi <- insurance[,3]
+children <- insurance[,4]
+smoker <- insurance[,5]
+region <- insurance[,6]
+charges <- insurance[,7]
+```
+
+# Predicción de Riesgos.
+
+En este proyecto exploraremos y anañizaremos un conjunto de datos dedicado al costo del tratamiento de diferentes pacientes. El costo del tratamiento depende de muchos factores: diagnóstico, tipo de clínica, ciudad de residencia, edad, etc.
+
+### Estructura del dataset
+
+En este dataset podemos encontrar la siguiente información de cada paciente:
+
+* **Age:** Edad.
+* **Sex:** Sexo
+* **BMI:** Indice de masa corporal.
+* **Children:** El número de hijos.
+* **Smoker:** Si es fumador.
+* **Region:** Localidad.
+* **Charges:** Coste del tratamiento.
+
+```{r insurance}
+summary(insurance)
+plot(insurance)
+```
+
+
+### Clasificación de las variables del dataset
+Como podemos ver tenemos 3 variables catégoricas (*sex*,*smoker*,*regio*), es decir, solo pueden tomar los siguientes valores: **Sex:** male/female. **Smoker:** fumador/no fumador. **Region:** northeast/northwest/southweast/southeast.
+
+El resto son variables cuantitativas. Si analizamos los datos obtenidos con el comando *sumary* se puede predecir que las variables **age** y **bmi** pueden presentar una distribución normal, esto lo podemos observar debido a la diferencias obtenidas entre la media y sus primer/tercer cuartil es aproximadamente la misma.
+
+Posibles problemas: claramente el conjunto de datos esta desbalanceado, los datos recogidos son mayor parte de personas no fumadoras, esto puede dar a que la media de *charges* sea mayor
+ya que los pacientes fumadores tienen mas riesgos a tener enfermedades que las pacientes no fumadores.
+
+# Análisis estadístico de los atributos.
+
+En este apartado se va a realizar un analisis mas profundo del dataset, obteniendo asi la distribución de cada uno de los atributos y los posibles sesgos. 
+
+### Edad
+
+```{r age}
+summary(age)
+hist(age)
+plot(age)
+```
+
+Como podemos ver en el histograma y en la representación de datos tenemos conjuntos equitativos por cada intervalo de edad.
+
+
+### Sexo
+
+```{r sex}
+sexNumeric <- ifelse(sex=="male", 1, 0)
+summary(sexNumeric)
+hist(sexNumeric)
+plot(sexNumeric)
+```
+
+Ocurre exactamente lo mismo que en el parametro *Age*.
+
+### Bmi
+```{r bmi}
+summary(bmi)
+hist(bmi)
+plot(bmi)
+```
+
+Podemos apreciar según el histograma, forma de campana de gaus, nos encontramos con una distribución normal y por como explicamos anteriormente, por su media y la relacion con los cuartil.
+
+```{r bmiNormal}
+z.norm<-(bmi-mean(bmi))/sd(bmi)
+qqnorm(z.norm)
+abline(0,1)
+pnorm(median(bmi), mean = mean(bmi), sd = sd(bmi), lower.tail = TRUE)
+```
+
+Al representar su normal podemos apreciar que es una función tipica de este tipo de distribución, parece que no tiene sesgo pero tiene algunos valores que no te permiten realizar una afirmación concreta.
+
+### Hijos
+
+```{r children}
+summary(children)
+hist(children)
+plot(children)
+```
+
+
+### Fumadores
+
+```{r smoker}
+summary(smoker)
+smokerNumeric <- ifelse(smoker=="yes", 1, 0)
+hist(smokerNumeric)
+plot(smokerNumeric)
+```
+
+Como podemos ver en el histograma y en la representación de datos tenemos conjuntos no equitativos.
+
+### Region
+
+```{r region}
+summary(region)
+regionNumeric <- as.numeric(region)
+plot(region)
+```
+
+Como podemos observar hay ligeramente mas pacientes de *sotheast* en el dataset.
+
+### Costes tratamientos
+ 
+Como se quiere comparar los atributos *charges* y *smoker* vamos a a comparar los costes segun sean fumador o no fumador.
+
+```{r charges}
+smokerS<-split(insurance, smoker)
+par(mfrow=c(1,2))
+hist(smokerS$no$charges,
+     main = "Costes en pacientes NO fumadores",
+     xlab = "€",col = "green")
+hist(smokerS$yes$charges,
+     main = "Costes en pacientes fumadores",
+     xlab = "€", col="brown")
+```
+
+#### Boxplot.
+```{r chargesBox}
+boxplot(charges ~ smoker,
+        main = 'Costes en pacientes',
+        ylab = 'Euros',
+        xlab = 'Fumador',
+        border =c("green","brown"))
+```
+
+Claramente, en ambas representaciones podemos ver una clara influencia entre ambos atributos, podiendo decir que los costes medios son mayores para los pacientes que SI fuman.
+
+
+# Matriz de correlación entre los atributos del dataset
+
+```{r matrizCorrelacion}
+correlacionData<- data.frame(age, sexNumeric, bmi, children, smokerNumeric, regionNumeric, charges)
+matrixCorrelacion<-cor(correlacionData)
+corrplot(matrixCorrelacion, method ="number",type ="upper")
+```
+
+Podemos destacar los atributos mas relacionados: sex-smoker, sex-charges, smoker-charges and age-charges. El resto de relaciones no son relevantes debido a que estan muy poco relacionadas.
+
+#### Relaciones entre los atributos
+
+```{r relacionAtributos}
+plot(smoker, charges)
+plot(sex,smoker)
+plot(age, charges)
+```
+
+Podemos observar que tanto los hombres con respecto a la mujer o si eres fumador estan relacionados con el atributo *charges* debido a que el coste es mayor. Tambien podemos observar incremento de costos en los valores mínimos con respecto a 
+la edad va aumentando.
+
+
+### BMI - Distribución
+
+```{r distribucionBMI}
+plot(density(bmi),main="BMI - Densidad estimada")
+plot(ecdf(bmi),main="BMI - Distribución acumulada")
+z.norm<-(bmi-mean(bmi))/sd(bmi)
+qqnorm(z.norm, main="BMI - Normal")
+abline(0,1)
+```
+
+Como se puede observar en todas las representaciones, la distribucuón que sigue esta variable es una distribución normal.
+
+### Distribución de los valores del atributo *charges* para los pacientes con bmi>30 (obesidad).
+
+```{r distribucionCharges30}
+insurance.bmi30<-subset(insurance, bmi>30)
+plot(density(insurance.bmi30$charges),main="BMI > 30 - Densidad estimada")
+plot(ecdf(insurance.bmi30$charges),main="BMI > 30 - Distribución acumulada")
+z.norm<-(insurance.bmi30$charges-mean(insurance.bmi30$charges))/sd(insurance.bmi30$charges)
+qqnorm(z.norm, main="BMI > 30 - Normal")
+abline(0,1)
+```
+
+Como podemos ver en las representaciones, la distribución de la variable charges se asemeja a una distribución normal con lo que podemos decir, que sigue esta distribución.
+
+## Modelo Lineal 1 - Charges_BMI.
+
+```{r m1}
+modLin1 <- lm(charges~bmi,
+         data = insurance)
+modLin1
+summary(modLin1)
+plot(bmi, charges)
+abline(modLin1)
+```
+
+Al ser el valor *p* muy bajo podemos congirmar que nuestro modelo lineal es bueno.
+
+
+## Modelo Lineal 2 usando funciones polinómicas - Charges_BMI.
+
+Utilizaremos las mismas varibales para ver su comparacion a posteriori.
+
+```{r m2}
+modPol1 <- lm(charges ~ bmi + I(bmi^2))
+modPol1
+summary(modPol1)
+```
+
+
+## Eficiencia de los modelos
+
+
+## Mejor Modelo Posible
+
+Para realizar el mejor modelo posible tendremos en cuenta todas las variables del dataset.
+
+```{r m3}
+m3 <- lm(charges ~ ., data = insurance)
+summary(m3)
+
+```
+
+Como podemos observar, al incluir el resto de variables en el modelo obtenemos un ajuste del 75% de los datos y tambien podemos destacar cuales son las variables más significativas para él: age, bmi, smoker y children.
+
+## Anova
+
+Para finalizar, utilizando anova, queremos ver que modelo es más interesante.
+
+#### Primer Modelo vs Segundo Modelo
+```{r anova_m1}
+anova(modLin1,modPol1)
+```
+
+Con lo que podemos observar que el modelo que mas se ajusta alos datos es Modelo Lineal 2 usando funciones polinómicas. Y no podemos comparar el tercer modelo porque m3 no es super modelo de modLin1. 
+
